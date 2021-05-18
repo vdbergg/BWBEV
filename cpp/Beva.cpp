@@ -13,8 +13,8 @@ Beva::Beva(Trie *trie, Experiment* experiment, int editDistanceThreshold) {
   this->editDistanceThreshold = editDistanceThreshold;
   this->twiceEditDistanceThreshold= 2* editDistanceThreshold;
   // Bellow:
-  //   fix length unary numeric system where a numer is the amount of zeros it contains. Example: 011 is one; 001 is two.
-  // Edit vector is represented in (2*tau + 1) positions with tau+1 bits for position. For instance, tau =3 then we have (2*3+1=7) positions and each position has 4 bits, thus able to represent numbers from 0 to 4. The total  is 28 bits
+  //   fix length unary numeric system where a number is the amount of zeros it contains. Example: 011 is one; 001 is two.
+  // Edit vector is represented in (2*tau + 1) positions with tau+1 bits for each position. For instance, tau =3 then we have (2*3+1=7) positions and each position has 4 bits, thus able to represent numbers from 0 to 4. The total  is 28 bits
   // Start value for 3 erros is 3 2 1 0 1 2 3, using the coding above.
   //maskSum is adopted to "add" an extra zero to each element of the edit vector. We make a shit >>1 and then and (&) with the mask.
   switch(this->editDistanceThreshold) {
@@ -23,7 +23,7 @@ Beva::Beva(Trie *trie, Experiment* experiment, int editDistanceThreshold) {
         this->editVectorStartValue =0x7400000000000000; // 01 11 01 00
         break;
     case 2:
-        this->maskSum=0x6DB6C00000000000; // 011 011 011 011 011 011 00...
+        this->maskSum=0x6DB6C00000000000; // 011 011 011 011 011 00 00...
         this->editVectorStartValue =0x2FB2000000000000; // 001 011 111 011 001 0
         break;
     case 3:
@@ -60,8 +60,8 @@ Beva::~Beva() {
 }
 
 void Beva::process(char ch, int prefixQueryLength, vector<ActiveNode>& oldActiveNodes,
-        vector<ActiveNode>& currentActiveNodes, unsigned bitmaps[CHAR_SIZE]) {
-    this->updateBitmap(ch, bitmaps);
+		   vector<ActiveNode>& currentActiveNodes, unsigned bitmaps[CHAR_SIZE], unsigned char *unique, unsigned uniqueSize) {
+  this->updateBitmap(ch, bitmaps,unique,uniqueSize);
 
     if (prefixQueryLength == 1) {
       currentActiveNodes.emplace_back(this->trie->root, this->editVectorStartValue, 0);
@@ -81,9 +81,9 @@ void Beva::process(char ch, int prefixQueryLength, vector<ActiveNode>& oldActive
 // bitmap in bshift starts at the last bit, so does not need to be filled
 // with zeros  after the shift.
 
-void Beva::updateBitmap(char ch, unsigned bitmaps[CHAR_SIZE]) { // query is equivalent to Q' with the last character c
-  for (unsigned x = 0; x < CHAR_SIZE; x++) {
-    bitmaps[x] <<= 1;
+void Beva::updateBitmap(char ch, unsigned bitmaps[CHAR_SIZE], unsigned char *unique,unsigned uniqueSize) { // query is equivalent to Q' with the last character c
+  for (unsigned x = 0; unique[x]; x++) {
+    bitmaps[unique[x]] <<= 1;
   }
   bitmaps[ch] = bitmaps[ch] | (0x80000000 >> this->twiceEditDistanceThreshold);
 }

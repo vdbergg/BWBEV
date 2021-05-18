@@ -6,8 +6,6 @@
 #define BEVA_ACTIVENODE_H
 
 
-#include "State.h"
-
 class ActiveNode {
 public:
     unsigned long editVector;

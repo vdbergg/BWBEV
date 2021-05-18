@@ -184,14 +184,33 @@ vector<char *> Framework::processFullQuery(string &query, int queryPosition) {
 
     vector<ActiveNode> currentActiveNodes;
     vector<ActiveNode> oldActiveNodes;
+    
+    unsigned *bitmaps= new unsigned [CHAR_SIZE];
+   
 
-    unsigned bitmaps[CHAR_SIZE];
-    for (unsigned x = 0; x < CHAR_SIZE; x++) bitmaps[x] = 0;
+    // TRECHO ABAIXO COMPUTA OS CARACTERES UNICOS DO PREFIXO
+    // E GUARDA NO VETOR unique;
+    unsigned char *unique = new unsigned char[CHAR_SIZE];
+    unsigned stringSize=0;
+    unsigned uniqueSize=0;
+    stringSize=query.size();
+    for (unsigned x = 0; x < stringSize; x++) {
+      unsigned y;
+      for(y=0; y < uniqueSize; y++) {
+	if(unique[y] == query[x]) break;
+      }
+      if(y == uniqueSize) {
+	unique[uniqueSize]=query[x];
+	uniqueSize++;
+      }
+    }
+    unique[uniqueSize]=0;
+    for (unsigned x = 0; x<CHAR_SIZE; x++) bitmaps[x] = 0;
     for (int currentPrefixQuery = 1; currentPrefixQuery <= query.size(); currentPrefixQuery++) {
         swap(oldActiveNodes, currentActiveNodes);
         currentActiveNodes.clear();
         this->beva->process(query[currentPrefixQuery - 1], currentPrefixQuery, oldActiveNodes,
-			    currentActiveNodes, bitmaps);
+			    currentActiveNodes, bitmaps,unique,uniqueSize);
         currentActiveNodes.shrink_to_fit();
         oldActiveNodes.clear();
     }
@@ -220,38 +239,56 @@ vector<char *> Framework::processFullQuery(string &query, int queryPosition) {
     #ifdef BEVA_IS_COLLECT_MEMORY_H
         this->experiment->getMemoryUsedInProcessing();
     #endif
-
+	delete[] unique;
+    delete[] bitmaps;
     return results;
 }
 
 vector<char *> Framework::processQuery(string &query, int queryId) {
     vector<ActiveNode> currentActiveNodes;
     vector<ActiveNode> oldActiveNodes;
-
-    unsigned bitmaps[CHAR_SIZE];
-    for (unsigned x = 0; x < CHAR_SIZE; x++) bitmaps[x] = 0;
+    unsigned *bitmaps = new unsigned[CHAR_SIZE];
+    // TRECHO ABAIXO COMPUTA OS CARACTERES UNICOS DO PREFIXO
+    // E GUARDA NO VETOR unique;
+    unsigned char *unique = new unsigned char[CHAR_SIZE];
+    unsigned stringSize=0;
+    unsigned uniqueSize=0;
+    stringSize=query.size();
+    for (unsigned x = 0; x < stringSize; x++) {
+      unsigned y;
+      for(y=0; y < uniqueSize; y++) {
+	if(unique[y] == query[x]) break;
+      }
+      if(y == uniqueSize) {
+	unique[uniqueSize]=query[x];
+	uniqueSize++;
+      }
+    }
+   
+        unique[uniqueSize]=0;
+    for (unsigned x = 0; x<CHAR_SIZE; x++) bitmaps[x] = 0;
     for (int currentPrefixQuery = 1; currentPrefixQuery <= query.size(); currentPrefixQuery++) {
       swap(oldActiveNodes, currentActiveNodes);
       currentActiveNodes.clear();
-      this->process(query, currentPrefixQuery, queryId, oldActiveNodes, currentActiveNodes, bitmaps);
+      this->process(query, currentPrefixQuery, queryId, oldActiveNodes, currentActiveNodes, bitmaps,unique,uniqueSize);
       oldActiveNodes.clear();
     }
-
+    delete[] bitmaps;
+    delete[] unique;
     vector<char *> results = this->output(currentActiveNodes);
-    
     return results;
 }
 
 void Framework::process(string query, int prefixQueryLength, int currentCountQuery,
-        vector<ActiveNode>& oldActiveNodes, vector<ActiveNode>& currentActiveNodes, unsigned (&bitmaps)[CHAR_SIZE]) {
+			vector<ActiveNode>& oldActiveNodes, vector<ActiveNode>& currentActiveNodes, unsigned *bitmaps, unsigned  char *unique, unsigned uniqueSize) {
     if (query.empty()) return;
-
+   
     #ifdef BEVA_IS_COLLECT_TIME_H
         this->experiment->initQueryProcessingTime();
     #endif
 
     this->beva->process(query[prefixQueryLength - 1], prefixQueryLength, oldActiveNodes, currentActiveNodes,
-            bitmaps);
+			bitmaps,unique,uniqueSize);
 
     #ifdef BEVA_IS_COLLECT_TIME_H
         this->experiment->endQueryProcessingTime(currentActiveNodes.size(), prefixQueryLength);
@@ -287,7 +324,7 @@ void Framework::writeExperiments() {
 vector<char *> Framework::output(vector<ActiveNode>& currentActiveNodes) {
     vector<char *> outputs;
     string tmp;
-    // int limit = 100;
+     int limit = 100;
 
     for (ActiveNode activeNode : currentActiveNodes) {
         unsigned beginRange = this->trie->getNode(activeNode.node).getBeginRange();
@@ -295,7 +332,7 @@ vector<char *> Framework::output(vector<ActiveNode>& currentActiveNodes) {
 
         for (unsigned i = beginRange; i < endRange; i++) {
             outputs.push_back(records[i].c_str());
-	    // if (outputs.size() >= limit) return outputs;
+//	     if (outputs.size() >= limit) return outputs;
         }
     }
   

@@ -7,9 +7,11 @@
 
 
 #include <iostream>
-#include "EditVector.h"
-#include "State.h"
 
+#include <unordered_map>
+
+
+using namespace std;
 #define CHAR_SIZE 128
 
 using namespace std;

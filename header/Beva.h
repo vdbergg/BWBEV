@@ -6,7 +6,6 @@
 #define BEVA_BEVA_H
 
 
-#include "EditVectorAutomata.h"
 #include "Trie.h"
 #include "ActiveNode.h"
 #include "utils.h"
@@ -29,9 +28,8 @@ public:
 
     Beva(Trie*, Experiment*, int);
     ~Beva();
-    void updateBitmap(char ch, unsigned bitmaps[CHAR_SIZE]);
-    void process(char, int, vector<ActiveNode>& oldActiveNodes, vector<ActiveNode>& currentActiveNodes,
-            unsigned bitmaps[CHAR_SIZE]);
+    void updateBitmap(char ch, unsigned bitmaps[CHAR_SIZE], unsigned char *unique, unsigned uniqueSize);
+    void process(char, int, vector<ActiveNode>& oldActiveNodes, vector<ActiveNode>& currentActiveNodes, unsigned bitmaps[CHAR_SIZE], unsigned char *unique, unsigned uniqueSize);
     void findActiveNodes(unsigned, ActiveNode&, vector<ActiveNode>&, unsigned bitmaps[CHAR_SIZE]);
     
     inline unsigned buildBitmap(unsigned queryLength, unsigned lastPosition, char c, unsigned bitmaps[CHAR_SIZE]) {
