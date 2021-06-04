@@ -43,10 +43,17 @@ Beva::Beva(Trie *trie, Experiment* experiment, int editDistanceThreshold) {
 
   for (int x = 0; x <= 2 * this->editDistanceThreshold; x++) {
     unsigned long l1,l2;
+    //example to v[0] (maskEdit[0])
+    // result: 00000-11111-11111-11111-....
+    // example to v[1] (maskEdit[1])
+    // result: 11111-00000-11111-11111-11111-....
+    // example to v[2] (maskEdit[2])
+    // result: 11111-11111-00000-11111-11111-11111-....
+
+
     this->maskEdit[x] = (0xFFFFFFFFFFFFFFFF >>(64-(this->editDistanceThreshold+1)));
     this->maskEdit[x] = this->maskEdit[x] <<(64-((x+1)*(this->editDistanceThreshold+1)));
-    this->maskEdit[x] =~ this->maskEdit[x];
-    // printf("[%0lX]\n", this->maskEdit[x]);
+    //    printf("[%0lX]\n", this->maskEdit[x]);
   }
   this->bitmapSize = (1 << ((2 * this->editDistanceThreshold) + 1)) - 1; // 2^(2tau + 1) - 1
   this->trie = trie;
@@ -60,8 +67,8 @@ Beva::~Beva() {
 }
 
 void Beva::process(char ch, int prefixQueryLength, vector<ActiveNode>& oldActiveNodes,
-		   vector<ActiveNode>& currentActiveNodes, unsigned bitmaps[CHAR_SIZE], unsigned char *unique, unsigned uniqueSize) {
-  this->updateBitmap(ch, bitmaps,unique,uniqueSize);
+		   vector<ActiveNode>& currentActiveNodes, unsigned bitmaps[CHAR_SIZE]) {
+  this->updateBitmap(ch, bitmaps);
 
     if (prefixQueryLength == 1) {
       currentActiveNodes.emplace_back(this->trie->root, this->editVectorStartValue, 0);
@@ -81,9 +88,9 @@ void Beva::process(char ch, int prefixQueryLength, vector<ActiveNode>& oldActive
 // bitmap in bshift starts at the last bit, so does not need to be filled
 // with zeros  after the shift.
 
-void Beva::updateBitmap(char ch, unsigned bitmaps[CHAR_SIZE], unsigned char *unique,unsigned uniqueSize) { // query is equivalent to Q' with the last character c
-  for (unsigned x = 0; unique[x]; x++) {
-    bitmaps[unique[x]] <<= 1;
+void Beva::updateBitmap(char ch, unsigned bitmaps[CHAR_SIZE]) { // query is equivalent to Q' with the last character c
+  for (unsigned x = 0; x < CHAR_SIZE; x++) {
+      bitmaps[x] <<= 1;
   }
   bitmaps[ch] = bitmaps[ch] | (0x80000000 >> this->twiceEditDistanceThreshold);
 }

@@ -32,7 +32,7 @@ public:
     void readData(string&, vector<string>&);
     void index();
     void process(string, int, int, vector<ActiveNode>& oldActiveNodes, vector<ActiveNode>& currentActiveNodes,
-		 unsigned *bitmaps, unsigned char * unique, unsigned uniqueSize);
+		 unsigned *bitmaps);
     vector<char *> processFullQuery(string &query, int queryPosition = -1);
     vector<char *> processQuery(string &query, int queryId);
     vector<char *> output(vector<ActiveNode>& currentActiveNodes);
