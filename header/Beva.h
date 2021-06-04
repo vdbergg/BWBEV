@@ -28,16 +28,14 @@ public:
 
     Beva(Trie*, Experiment*, int);
     ~Beva();
-    void updateBitmap(char ch, unsigned bitmaps[CHAR_SIZE], unsigned char *unique, unsigned uniqueSize);
-    void process(char, int, vector<ActiveNode>& oldActiveNodes, vector<ActiveNode>& currentActiveNodes, unsigned bitmaps[CHAR_SIZE], unsigned char *unique, unsigned uniqueSize);
+    void updateBitmap(char ch, unsigned bitmaps[CHAR_SIZE]);
+    void process(char, int, vector<ActiveNode>& oldActiveNodes, vector<ActiveNode>& currentActiveNodes, unsigned bitmaps[CHAR_SIZE]);
     void findActiveNodes(unsigned, ActiveNode&, vector<ActiveNode>&, unsigned bitmaps[CHAR_SIZE]);
     
     inline unsigned buildBitmap(unsigned queryLength, unsigned lastPosition, char c, unsigned bitmaps[CHAR_SIZE]) {
-
-      int k = (int) queryLength - (int) lastPosition;
-      return bitmaps[c]<<(this->editDistanceThreshold - k);
+        int k = (int) queryLength - (int) lastPosition;
+        return bitmaps[c]<<(this->editDistanceThreshold - k);
     }
-  
 
     inline unsigned long getNewEditVector(unsigned queryLength, 
 					  unsigned long editVector, 
@@ -80,8 +78,6 @@ public:
       }
       return 0;
     }
- 
-
    
     void showEditVector(unsigned long vec) {
     unsigned cont = 0;
