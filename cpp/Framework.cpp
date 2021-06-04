@@ -324,7 +324,7 @@ void Framework::writeExperiments() {
 vector<char *> Framework::output(vector<ActiveNode>& currentActiveNodes) {
     vector<char *> outputs;
     string tmp;
-     int limit = 100;
+    // int limit = 100;
 
     for (ActiveNode activeNode : currentActiveNodes) {
         unsigned beginRange = this->trie->getNode(activeNode.node).getBeginRange();
@@ -332,7 +332,7 @@ vector<char *> Framework::output(vector<ActiveNode>& currentActiveNodes) {
 
         for (unsigned i = beginRange; i < endRange; i++) {
             outputs.push_back(records[i].c_str());
-//	     if (outputs.size() >= limit) return outputs;
+	    // if (outputs.size() >= limit) return outputs;
         }
     }
   
