@@ -23,7 +23,8 @@ public:
     unsigned bitmapOne;
     unsigned long maskSum;
     unsigned long editVectorStartValue;
-    unsigned long *maskEdit;
+    unsigned long  scalarMaskEdit;
+    unsigned scalarDesloc;
 
 
     Beva(Trie*, Experiment*, int);
@@ -37,46 +38,50 @@ public:
         return bitmaps[c]<<(this->editDistanceThreshold - k);
     }
 
-    inline unsigned long getNewEditVector(unsigned queryLength, 
-					  unsigned long editVector, 
-					  unsigned lastPosition, 
-					  char c, unsigned bitmaps[CHAR_SIZE]) {
-      unsigned bitmap = buildBitmap(queryLength, lastPosition, c,bitmaps);
-      unsigned long newEditVector;
-      
-      newEditVector = (editVector >> 1)|(editVector << this->editDistanceThreshold);
-      newEditVector&=this->maskSum;
-      if(bitmap) {
-	// In cases where there is a match between d[] and q[]
-	// printf("editVector Original: %0lX\n", editVector);
-	int x = 0;
-	while(!(bitmap &  0x80000000)) {
-	  x++;
-	  bitmap = bitmap << 1;
-	}
-	newEditVector = newEditVector |(editVector&(this->maskEdit[x]));
-	x++;
-	bitmap= bitmap<< 1;
-	for (;  x <= this->twiceEditDistanceThreshold; x++, bitmap= bitmap<< 1) {
-	  if (bitmap &  0x80000000) {
-	    // maskEdit isolates only the element that we need to inspect
-	    newEditVector = newEditVector |(editVector&(this->maskEdit[x]));
-	  }
-	}
-	for (x=0;  x < this->editDistanceThreshold; x++) {	
-	  newEditVector |= (newEditVector>>(this->editDistanceThreshold+2)& this->maskSum);
-	}
-      }
-      return newEditVector;
+    inline unsigned long getNewEditVector(unsigned queryLength,
+                                          unsigned long editVector,
+                                          unsigned lastPosition,
+                                          char c, unsigned bitmaps[CHAR_SIZE]) {
+        unsigned bitmap = buildBitmap(queryLength, lastPosition, c,bitmaps);
+        unsigned long newEditVector;
+
+        newEditVector = (editVector >> 1)|(editVector << this->editDistanceThreshold);
+        newEditVector&=this->maskSum;
+        if(bitmap) {
+            // In cases where there is a match between d[] and q[]
+            // printf("editVector Original: %0lX\n", editVector);
+            unsigned long mask = this->scalarMaskEdit;
+            //	int x = 0;
+            while(!(bitmap &  0x80000000)) {
+                mask>>=this->scalarDesloc;
+                bitmap = bitmap << 1; }
+            newEditVector = newEditVector |(editVector&mask);
+            mask>>=this->scalarDesloc;
+            bitmap= bitmap<< 1;
+            for (;  bitmap;  mask>>=this->scalarDesloc, bitmap= bitmap<< 1) {
+                if (bitmap &  0x80000000) {
+                    // maskEdit isolates only the element that we need to inspect
+                    newEditVector = newEditVector |(editVector&mask);
+                }
+            }
+            {
+                unsigned long tmp;
+                do {
+                    tmp = newEditVector;
+                    newEditVector |= (newEditVector>>(this->editDistanceThreshold+2)& this->maskSum);
+                } while(tmp != newEditVector);
+            }
+        }
+        return newEditVector;
     }
-    
+
     inline unsigned isActive(int pos, unsigned long vet) {
-      if (pos > this->editDistanceThreshold) return  0;
-      pos+=this->editDistanceThreshold;
-      if(vet& (0x8000000000000000 >> (((pos+1)*(this->editDistanceThreshold+1))-1))) {
-	    return 1;
-      }
-      return 0;
+        if (pos > this->editDistanceThreshold) return  0;
+        pos+=this->editDistanceThreshold;
+        if(vet& (0x8000000000000000 >> (((pos+1)*(this->editDistanceThreshold+1))-1))) {
+            return 1;
+        }
+        return 0;
     }
    
     void showEditVector(unsigned long vec) {
