@@ -40,31 +40,12 @@ void processingQueriesInServer() {
     #ifndef BEVA_IS_MAC_H
     crow::SimpleApp app;
 
-    CROW_ROUTE(app, "/")
-            .name("hello")
-                    ([]{
-                        return "Hello World!";
-                    });
-
-    CROW_ROUTE(app, "/about")
-            ([](){
-                return "This is a server";
-            });
-
     CROW_ROUTE(app, "/autocomplete")
             ([](const crow::request& req) {
                 std::ostringstream os;
                 vector<char *> results;
 
                 os << "Params: " << req.url_params << "\n\n";
-
-//                if (req.url_params.get("load_config") != nullptr) {
-//                    string load_config = boost::lexical_cast<string>(req.url_params.get("load_config"));
-//                    os << "The value of 'load_config' is " << load_config << '\n';
-//                    if (load_config == "true") {
-//                        loadConfig();
-//                    }
-//                }
 
                 if (req.url_params.get("query") != nullptr) {
                     string query = boost::lexical_cast<string>(req.url_params.get("query"));
@@ -112,19 +93,17 @@ int main(int argc, char** argv) {
 }
 
 void loadConfig() {
+    ifstream is_file("./path.cfg");
+    string line;
 
-    std::ifstream is_file("./path.cfg");
-    std::string line;
+    while (std::getline(is_file, line)) {
+        istringstream is_line(line);
+        string key;
 
-    while( std::getline(is_file, line) )
-    {
-        std::istringstream is_line(line);
-        std::string key;
+        if (getline(is_line, key, '=')) {
+            string value;
 
-        if (std::getline(is_line, key, '=')) {
-            std::string value;
-
-            if (std::getline(is_line, value)) {
+            if (getline(is_line, value)) {
                 config[key] = value;
             }
         }

@@ -50,17 +50,9 @@ void Framework::readData(string& filename, vector<StaticString>& recs) {
     ifstream input(filename, ios::in);
 
     unsigned long fileSize = getFileSize(filename);
-//    cout << "Tamanho do Arquivo:" << fileSize << endl;
     char *tmpPtr = (char*) malloc(sizeof(char)*fileSize);
     StaticString::setDataBaseMemory(tmpPtr,fileSize);
     while (getline(input, str)) {
-//        for (char &c : str) {
-//            if ((int) c == -61) continue;
-//            else if ((int) c < 0 || (int) c >= CHAR_SIZE) {
-//                c = utils::convertSpecialCharToSimpleChar(c);
-//            }
-//            c = tolower(c);
-//        }
         if (!str.empty()) recs.push_back(StaticString(str));
     }
 }
@@ -71,35 +63,31 @@ void Framework::readData(string& filename, vector<string>& recs) {
     string str;
     ifstream input(filename, ios::in);
     while (getline(input, str)) {
-//        for (char &c : str) {
-//            if ((int) c == -61) continue;
-//            else if ((int) c < 0 || (int) c >= CHAR_SIZE) {
-//                c = utils::convertSpecialCharToSimpleChar(c);
-//            }
-//            c = tolower(c);
-//        }
         if (!str.empty()) recs.push_back(str);
     }
 }
 
 void Framework::index(){
     cout << "indexing... \n";
-    string sizeSufix = "";
+    string sizeSuffix = "";
     switch (stoi(this->config["size_type"])) {
         case 0:
-            sizeSufix = "_25";
+            sizeSuffix = "_20";
             break;
         case 1:
-            sizeSufix = "_50";
+            sizeSuffix = "_40";
             break;
         case 2:
-            sizeSufix = "_75";
+            sizeSuffix = "_60";
             break;
         case 3:
-            sizeSufix = "";
+            sizeSuffix = "_80";
+            break;
+        case 4:
+            sizeSuffix = "";
             break;
         default:
-            sizeSufix = "_60";
+            sizeSuffix = "";
     }
 
     auto start = chrono::high_resolution_clock::now();
@@ -118,36 +106,36 @@ void Framework::index(){
 
     switch (this->dataset) {
         case C::AOL:
-            datasetFile += "aol/aol" + sizeSufix + ".txt";
+            datasetFile += "aol/aol" + sizeSuffix + ".txt";
             queryFile += "aol/q17_" + tau + datasetSuffix + ".txt";
             break;
         case C::MEDLINE:
-            datasetFile += "medline/medline" + sizeSufix + ".txt";
+            datasetFile += "medline/medline" + sizeSuffix + ".txt";
             queryFile += "medline/q13" + datasetSuffix + ".txt";
             break;
         case C::USADDR:
-            datasetFile += "usaddr/usaddr" + sizeSufix + ".txt";
+            datasetFile += "usaddr/usaddr" + sizeSuffix + ".txt";
             queryFile += "usaddr/q17_" + tau + datasetSuffix + ".txt";
             break;
         case C::MEDLINE19:
-            datasetFile += "medline19/medline19" + sizeSufix + ".txt";
+            datasetFile += "medline19/medline19" + sizeSuffix + ".txt";
             queryFile += "medline19/q17_" + tau + datasetSuffix + ".txt";
             break;
         case C::DBLP:
-            datasetFile += "dblp/dblp" + sizeSufix + ".txt";
+            datasetFile += "dblp/dblp" + sizeSuffix + ".txt";
             queryFile += "dblp/q17_" + tau + datasetSuffix + ".txt";
 	    break;
         case C::UMBC:
-            datasetFile += "umbc/umbc" + sizeSufix + ".txt";
+            datasetFile += "umbc/umbc" + sizeSuffix + ".txt";
             queryFile += "umbc/q17_" + tau + datasetSuffix + ".txt";
             break;
         case C::JUSBRASIL:
-            datasetFile += "jusbrasil/jusbrasil" + sizeSufix + ".txt";
+            datasetFile += "jusbrasil/jusbrasil" + sizeSuffix + ".txt";
             queryFile += "jusbrasil/q.txt";
             relevantQueryFile += "jusbrasil/relevant_answers.txt";
             break;
         default:
-            datasetFile += "aol/aol" + sizeSufix + ".txt";
+            datasetFile += "aol/aol" + sizeSuffix + ".txt";
             queryFile += "aol/q17_" + tau + datasetSuffix + ".txt";
             break;
     }
