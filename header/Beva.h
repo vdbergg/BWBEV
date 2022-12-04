@@ -6,11 +6,15 @@
 #define BEVA_BEVA_H
 
 
+#include <unordered_map>
 #include "Trie.h"
 #include "ActiveNode.h"
 #include "utils.h"
+#include "TopKHeap.h"
 
 #define CHAR_SIZE 128
+
+using namespace std;
 
 class Beva {
 public:
@@ -18,24 +22,46 @@ public:
     Experiment *experiment;
     int editDistanceThreshold;
     int twiceEditDistanceThreshold;
-    int bitmapSize;
     unsigned bitmapZero;
-    unsigned bitmapOne;
     unsigned long maskSum;
     unsigned long editVectorStartValue;
-    unsigned long  scalarMaskEdit;
+    unsigned long scalarMaskEdit;
     unsigned scalarDesloc;
+    unsigned long editDistanceMasc;
+    unordered_map<unsigned long, int> unaryToDecimalMap;
+    long long *preCalculatedExponentiation;
 
-
-    Beva(Trie*, Experiment*, int);
+    Beva(Trie*, Experiment*, int, long long *preCalculatedExponentiation);
     ~Beva();
+
+    void processNoErrors(char ch,
+                         vector<ActiveNode>& oldNoErrorActiveNodes,
+                         vector<ActiveNode>& currentNoErrorActiveNodes,
+                         TopKHeap& topKHeap);
+
     void updateBitmap(char ch, unsigned bitmaps[CHAR_SIZE]);
-    void process(char, int, vector<ActiveNode>& oldActiveNodes, vector<ActiveNode>& currentActiveNodes, unsigned bitmaps[CHAR_SIZE]);
+    void processWithPruningV2(char ch,
+                              int prefixQueryLength,
+                              vector<ActiveNode>& oldActiveNodes,
+                              vector<ActiveNode>& currentActiveNodes,
+                              unsigned bitmaps[CHAR_SIZE],
+                              TopKHeap& topKHeap,
+                              int editDistance);
+
+    void findActiveNodesWithPruningV2(unsigned queryLength,
+                                      ActiveNode &oldActiveNode,
+                                      vector<ActiveNode> &activeNodes,
+                                      unsigned bitmaps[CHAR_SIZE],
+                                      TopKHeap& topKHeap,
+                                      int editDistance);
+
+    void process(char, int, vector<ActiveNode>& oldActiveNodes, vector<ActiveNode>& currentActiveNodes,
+                 unsigned bitmaps[CHAR_SIZE]);
     void findActiveNodes(unsigned, ActiveNode&, vector<ActiveNode>&, unsigned bitmaps[CHAR_SIZE]);
-    
+
     inline unsigned buildBitmap(unsigned queryLength, unsigned lastPosition, char c, unsigned bitmaps[CHAR_SIZE]) {
         int k = (int) queryLength - (int) lastPosition;
-        return bitmaps[c]<<(this->editDistanceThreshold - k);
+        return bitmaps[c] << (this->editDistanceThreshold - k);
     }
 
     inline unsigned long getNewEditVector(unsigned queryLength,
@@ -78,12 +104,24 @@ public:
     }
 
     inline unsigned isActive(int pos, unsigned long vet) {
-        if (pos > this->editDistanceThreshold) return  0;
+        if (pos > this->editDistanceThreshold) return 0;
         pos += this->editDistanceThreshold;
-        if (vet& (0x8000000000000000 >> (((pos + 1) * (this->editDistanceThreshold + 1)) - 1))) {
+        if (vet & (0x8000000000000000 >> (((pos + 1) * (this->editDistanceThreshold + 1)) - 1))) {
             return 1;
         }
         return 0;
+    }
+
+    inline int retrieveEditDistance(int pos, unsigned long vet) {
+        if (pos > (2 * this->editDistanceThreshold)) return this->editDistanceThreshold + 1;
+
+        int numberOfDeslocMasc = (pos * (editDistanceThreshold + 1));
+        unsigned long masc = this->editDistanceMasc >> numberOfDeslocMasc;
+        unsigned long result = (vet & masc) >> (64 - (numberOfDeslocMasc + (editDistanceThreshold + 1)));
+
+        int editDistance = this->unaryToDecimalMap[result];
+
+        return editDistance;
     }
    
     void showEditVector(unsigned long vec) {

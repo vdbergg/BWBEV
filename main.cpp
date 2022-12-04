@@ -25,7 +25,19 @@ void processingQueriesOutsideServer() {
         indexMax = 100;
     #endif
 
-    if (config["is_full_query_instrumentation"] == "0") {
+    if (config["use_top_k_v1"] == "1") {
+        for (int i = indexMin; i < indexMax; ++i) {
+            framework->processQueryWithTopKBruteForce(framework->queries[i], i);
+        }
+    } else if (config["use_top_k_v2"] == "1") {
+        for (int i = indexMin; i < indexMax; ++i) {
+            framework->processQueryWithTopKPruningV1(framework->queries[i], i);
+        }
+    } else if (config["use_top_k_v3"] == "1") {
+        for (int i = indexMin; i < indexMax; ++i) {
+            framework->processQueryWithTopKPruningV2(framework->queries[i], i);
+        }
+    } else if (config["is_full_query_instrumentation"] == "0") {
         for (int i = indexMin; i < indexMax; ++i) {
             framework->processQuery(framework->queries[i], i);
         }

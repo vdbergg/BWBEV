@@ -8,8 +8,10 @@
 #include <vector>
 #include <bitset>
 #include <iostream>
+#include <cmath>
 
 using namespace std;
+
 
 class utils {
 public:
@@ -37,6 +39,37 @@ public:
     static inline unsigned int setKthBitFromDecimal(unsigned int decimal, unsigned short k, unsigned bitmapSize) {
         return (1 << k | decimal) & bitmapSize;
     };
+
+    static inline long long fast_exponentiation(long long base, long long exponent) {
+        long long res = 1;
+        while (exponent > 0) {
+            if (exponent & 1)
+                res = res * base;
+            base = base * base;
+            exponent >>= 1;
+        }
+        return res;
+    }
+
+//    static inline double dynamicScore(const double staticScore,
+//                                      const double editDist,
+//                                      const double querySize,
+//                                      const double maxEditDist) {
+//        return staticScore * fast_exponentiation( 100.0 / log2(max(querySize, 2.0)), maxEditDist - editDist);
+//    }
+
+//    static inline double dynamicScore(double staticScore,
+//                                      double editDist,
+//                                      double querySize,
+//                                      double maxEditDist) {
+//        int deslocs = (2 * (maxEditDist - editDist));
+//        return (int) staticScore << deslocs;
+//    }
+
+    static inline double dynamicScore(const double staticScore,
+                                      const long long value) {
+        return staticScore * value;
+    }
 };
 
 

@@ -13,22 +13,22 @@
 
 using namespace std;
 
-typedef unsigned integerPointer;
+typedef unsigned long integerPointer;
 
 
 extern integerPointer  currFreePosition;
 extern integerPointer dataEnd;
 extern char *_data_static;
 
-const unsigned staticStringNPos=0xFFFFFFFF;
+const unsigned long staticStringNPos=0xFFFFFFFF;
 
 class StaticString {
 public:
     // one value per object
     integerPointer dataPos;
-    unsigned stringSize;
+    unsigned long stringSize;
 
-    inline string substr(unsigned inicio = 0, unsigned length = staticStringNPos) {
+    inline string substr(unsigned long inicio = 0, unsigned long length = staticStringNPos) {
         string tmp="";
 	    if (length ==0) return tmp;
 	    if (length> stringSize) length = stringSize;
@@ -47,7 +47,7 @@ public:
     }
 
 
-   inline StaticString staticSubstr(unsigned inicio = 0, unsigned length = staticStringNPos) {
+   inline StaticString staticSubstr(unsigned long inicio = 0, unsigned long length = staticStringNPos) {
         StaticString tmp;
         if (length > stringSize) length = stringSize;
         if (inicio + length <= stringSize) {
@@ -66,7 +66,7 @@ public:
         return tmp;
     }
 
- inline StaticString staticSubstr2(unsigned inicio = 0, unsigned length = staticStringNPos) {
+ inline StaticString staticSubstr2(unsigned long inicio = 0, unsigned long length = staticStringNPos) {
         StaticString tmp;
 	cout << "*** substr inicio " << inicio << " length " << length << " size "<< stringSize << endl; 
 	if(length> stringSize) length = stringSize;
@@ -90,10 +90,10 @@ public:
         return tmp;
    }
 
-    inline unsigned length() { return stringSize;}
-    inline unsigned size() { return stringSize;}
-    inline char operator[](unsigned pos) { return *(_data_static+dataPos+pos); }
-    inline static void setDataBaseMemory(char *ptr,unsigned size) { _data_static = ptr; dataEnd=size; currFreePosition= 0;}
+    inline unsigned long length() { return stringSize;}
+    inline unsigned long size() { return stringSize;}
+    inline char operator[](unsigned long pos) { return *(_data_static+dataPos+pos); }
+    inline static void setDataBaseMemory(char *ptr,unsigned long size) { _data_static = ptr; dataEnd=size; currFreePosition= 0;}
 
     StaticString(const string s) {
         insertNewString(s);
@@ -109,12 +109,12 @@ public:
         this->dataPos = 0;
     }
 
-    StaticString(unsigned data, unsigned size) {
+    StaticString(unsigned long data, unsigned long size) {
       this->dataPos = data;
       this->stringSize= size;
     }
 
-    void resize(unsigned newSize) {
+    void resize(unsigned long newSize) {
         if (newSize <= this->stringSize) {
             this->stringSize = newSize;
         } else {
