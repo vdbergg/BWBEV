@@ -59,8 +59,6 @@ void Framework::readData(string& filename, vector<StaticString>& recs) {
     while (getline(input, str)) {
         if (!str.empty()) {
             recs.push_back(StaticString(str));
-            float score = (float) rand() / RAND_MAX;
-            scores.push_back(score);
         }
     }
 }
@@ -81,7 +79,9 @@ void Framework::readData(string& filename, vector<double>& recs) {
     string str;
     ifstream input(filename, ios::in);
     while (getline(input, str)) {
-        if (!str.empty()) recs.push_back(stod(str));
+        if (!str.empty()) {
+            recs.push_back(std::stod(str));
+        }
     }
 }
 
@@ -150,10 +150,10 @@ void Framework::index(){
             queryFile += "umbc/q17_" + tau + datasetSuffix + ".txt";
             break;
         case C::JUSBRASIL:
-            datasetFile += "jusbrasil/jusbrasil" + sizeSuffix + ".txt";
-            queryFile += "jusbrasil/q.txt";
+            datasetFile += "jusbrasil/top-k/jusbrasil-topk" + sizeSuffix + ".txt";
+            queryFile += "jusbrasil/top-k/q.txt";
             relevantQueryFile += "jusbrasil/relevant_answers.txt";
-            scoreFile += "jusbrasil/scores.txt";
+            scoreFile += "jusbrasil/top-k/scores.txt";
             break;
         default:
             datasetFile += "aol/aol" + sizeSuffix + ".txt";
@@ -165,31 +165,35 @@ void Framework::index(){
     readData(datasetFile, records);
     //    sort(this->records.begin(), this->records.end());
     readData(queryFile, this->queries);
-    if (config["use_top_k_v1"] == "1" || config["use_top_k_v2"] == "1" || config["use_top_k_v3"] == "1") {
+    if (config["use_top_k_v1"] == "1" || config["use_top_k_v2"] == "1"
+        || config["use_top_k_v3"] == "1" || config["use_top_k_v4"] == "1") {
         readData(scoreFile, scores);
     }
+
     if (this->config["has_relevant_queries"] == "1") {
         readData(relevantQueryFile, this->relevantQueries);
     }
 
     this->trie = new Trie(this->experiment);
     this->trie->buildDaatIndex();
-    this->trie->shrinkToFit();
-    if (this->config["use_top_k_v2"] == "1" || this->config["use_top_k_v3"] == "1") {
+    if (this->config["use_top_k_v1"] == "1" || this->config["use_top_k_v2"] == "1" || this->config["use_top_k_v3"] == "1"
+        || this->config["use_top_k_v4"] == "1") {
         this->trie->buildMaxScores();
     }
+    this->trie->shrinkToFit();
+
     long long *preCalculatedExponentiation = new long long[this->editDistanceThreshold + 1];
     for (int i = 0; i <= this->editDistanceThreshold; i++) {
         preCalculatedExponentiation[i] = utils::fast_exponentiation(5, (this->editDistanceThreshold - i));
     }
     this->beva = new Beva(this->trie, this->experiment, this->editDistanceThreshold, preCalculatedExponentiation);
-    if (config["use_top_k_v3"] == "1") {
+    if (this->config["use_top_k_v3"] == "1" || this->config["use_top_k_v4"] == "1") {
         for (int i = 1; i <= this->editDistanceThreshold; i++) {
             preCalculatedExponentiation = new long long[i + 1];
             for (int j = 0; j <= i; j++) {
                 preCalculatedExponentiation[j] = utils::fast_exponentiation(5, (i - j));
             }
-            this->bevaTopK.push_back(new Beva(this->trie, experiment, i, preCalculatedExponentiation));
+            this->bevaTopK.push_back(new Beva(this->trie, this->experiment, i, preCalculatedExponentiation));
         }
     }
 
@@ -324,27 +328,185 @@ void Framework::processQueryWithTopKPruningV1(string &query, int queryId) {
     }
 }
 
+void Framework::processQueryWithTopKPruningV3(string &query, int queryId) {
+    TopKHeap topKHeap(this->kResults);
+
+    for (int ed = 0; ed <= this->editDistanceThreshold; ed++) {
+        vector<ActiveNode> currentActiveNodes;
+        vector<ActiveNode> oldActiveNodes;
+
+        unsigned bitmaps[CHAR_SIZE];
+        for (auto & bitmap : bitmaps) bitmap = this->beva->bitmapZero;
+
+        for (int currentPrefixQuery = 1; currentPrefixQuery <= query.size(); currentPrefixQuery++) {
+            swap(oldActiveNodes, currentActiveNodes);
+            currentActiveNodes.clear();
+
+            #ifdef BEVA_IS_COLLECT_TIME_H
+            experiment->initQueryProcessingTime();
+            #endif
+
+            if (ed == 0) {
+                this->beva->processNoErrors(query[currentPrefixQuery - 1],
+                                            currentPrefixQuery,
+                                            oldActiveNodes,
+                                            currentActiveNodes);
+            } else {
+                this->bevaTopK[ed - 1]->processWithPruningV2(query[currentPrefixQuery - 1],
+                                                         currentPrefixQuery,
+                                                         oldActiveNodes,
+                                                         currentActiveNodes,
+                                                         bitmaps,
+                                                         topKHeap);
+            }
+
+            #ifdef BEVA_IS_COLLECT_TIME_H
+            experiment->endQueryProcessingTime(currentActiveNodes.size(), currentPrefixQuery);
+
+            vector<int> prefixesSize = {5, 9, 13, 17};
+            if (std::find(prefixesSize.begin(), prefixesSize.end(), currentPrefixQuery) != prefixesSize.end()) {
+                experiment->initQueryFetchingTime();
+                buildTopKWithPruningV3Range(currentActiveNodes,
+                                            ed == 0 ? this->beva->preCalculatedExponentiation
+                                                    : this->bevaTopK[ed - 1]->preCalculatedExponentiation,
+                                            topKHeap,
+                                            ed);
+                vector<char *> results = topKHeap.outputSuggestions();
+                experiment->endQueryFetchingTime(currentPrefixQuery, results.size());
+            }
+            #endif
+
+            currentActiveNodes.shrink_to_fit();
+            oldActiveNodes.clear();
+        }
+    }
+
+    #ifdef BEVA_IS_COLLECT_MEMORY_H
+        this->experiment->getMemoryUsedInProcessing();
+    #else
+        experiment->compileQueryProcessingTimes(queryId, true);
+        experiment->saveQueryProcessingTime(query, queryId, true);
+    #endif
+}
+
+void Framework::processFullQueryWithTopK(string &query, vector<char *>& results) {
+    TopKHeap topKHeap(this->kResults);
+    vector<ActiveNode> currentActiveNodes;
+    vector<ActiveNode> oldActiveNodes;
+
+    for (int ed = 0; ed <= this->editDistanceThreshold; ed++) {
+        swap(currentActiveNodes, oldActiveNodes);
+
+        unsigned bitmaps[CHAR_SIZE];
+        for (auto & bitmap : bitmaps) bitmap = this->beva->bitmapZero;
+
+        for (int currentPrefixQuery = 1; currentPrefixQuery <= query.size(); currentPrefixQuery++) {
+            swap(oldActiveNodes, currentActiveNodes);
+            currentActiveNodes.clear();
+
+            if (ed == 0) {
+                this->beva->processNoErrors(query[currentPrefixQuery - 1],
+                                            currentPrefixQuery,
+                                            oldActiveNodes,
+                                            currentActiveNodes);
+            } else {
+                this->bevaTopK[ed - 1]->processWithPruningV2(query[currentPrefixQuery - 1],
+                                                             currentPrefixQuery,
+                                                             oldActiveNodes,
+                                                             currentActiveNodes,
+                                                             bitmaps,
+                                                             topKHeap);
+            }
+
+            currentActiveNodes.shrink_to_fit();
+            oldActiveNodes.clear();
+        }
+
+        buildTopKWithPruningV3Range(currentActiveNodes,
+                                    ed == 0 ? this->beva->preCalculatedExponentiation
+                                            : this->bevaTopK[ed - 1]->preCalculatedExponentiation,
+                                    topKHeap,
+                                    ed);
+    }
+
+    topKHeap.outputSuggestions(results);
+}
+
+const int limiarInsercao = 30;
+
+/* Função para ordenar um vetor de float por inserção (insertion sort) */
+
+void Framework::ordenarPorInsercao(vector<ActiveNode>& activeNodes, unsigned tamanhoDoVetor) {
+    int i, j;
+
+    for (i = 1; i < tamanhoDoVetor; i++) {
+        ActiveNode pivot = activeNodes[i];
+        j = i - 1;
+
+        while ((j >= 0) && ( this->trie->getNode(activeNodes[j].node).getMaxStaticScore() < this->trie->getNode(pivot.node).getMaxStaticScore()) ) {
+            activeNodes[j + 1] = activeNodes[j];
+            j--;
+        }
+        activeNodes[j + 1] = pivot;
+    }
+}
+
+void Framework::quickSort(vector<ActiveNode>& activeNodes, int inicio, int fim) {
+    int i, j;
+
+    ActiveNode pivot = activeNodes[(inicio + fim) / 2];
+    i = inicio;
+    j = fim;
+
+    while (i <= j) {
+        while (this->trie->getNode(activeNodes[i].node).getMaxStaticScore() > this->trie->getNode(pivot.node).getMaxStaticScore()) { i++; }  // avanca enquanto está do lado certo
+        while (this->trie->getNode(activeNodes[j].node).getMaxStaticScore() < this->trie->getNode(pivot.node).getMaxStaticScore()) { j--; } // recua enquanto está do lado certo
+
+        if (i <= j) {
+            ActiveNode tmp = activeNodes[i];
+            activeNodes[i] = activeNodes[j];
+            activeNodes[j] = tmp;
+            i++;
+            j--;
+        }
+    }
+    if ( (j - inicio) > limiarInsercao) { quickSort(activeNodes, inicio, j); }
+    if ( (fim - i) > limiarInsercao) { quickSort(activeNodes, i, fim); }
+}
+
+
+void Framework::quickSort(vector<ActiveNode>& activeNodes) {
+    int tamanhoDoVetor = activeNodes.size();
+
+    if (tamanhoDoVetor > limiarInsercao) {
+        this->quickSort(activeNodes, 0,  tamanhoDoVetor - 1);
+    }
+
+    ordenarPorInsercao(activeNodes, tamanhoDoVetor);
+}
+
 void Framework::buildTopKWithPruningV1Range(vector<ActiveNode>& currentActiveNodes,
                                             double querySize,
-                                            TopKHeap& topKHeap) const {
-    for (ActiveNode activeNode : currentActiveNodes) {
-        double activeNodeScore = this->trie->getNode(activeNode.node).getMaxStaticScore();
-        unsigned recordIdFromActiveNodeScore = this->trie->getNode(activeNode.node).getRecordIdFromMaxScore();
+                                            TopKHeap& topKHeap) {
+    this->quickSort(currentActiveNodes);
+
+    for (int i = 0; i < topKHeap.capacity && i < currentActiveNodes.size(); i++) {
+        double activeNodeScore = this->trie->getNode(currentActiveNodes[i].node).getMaxStaticScore();
+        unsigned recordIdFromActiveNodeScore = this->trie->getNode(currentActiveNodes[i].node).getRecordIdFromMaxScore();
 
         if (topKHeap.isFull() && (activeNodeScore < topKHeap.topMaxScore() || topKHeap.contains(recordIdFromActiveNodeScore))) continue;
 
-        if (activeNode.editDistance == -1) {
-            int pos = ((int) querySize - (int) activeNode.level) + this->editDistanceThreshold;
-            activeNode.editDistance = this->beva->retrieveEditDistance(pos, activeNode.editVector);
+        if (currentActiveNodes[i].editDistance == -1) {
+            int pos = ((int) querySize - (int) currentActiveNodes[i].level) + this->editDistanceThreshold;
+            currentActiveNodes[i].editDistance = this->beva->retrieveEditDistance(pos, currentActiveNodes[i].editVector);
         }
 
-        unsigned beginRange = this->trie->getNode(activeNode.node).getBeginRange();
-        unsigned endRange = this->trie->getNode(activeNode.node).getEndRange();
-        long long score = this->beva->preCalculatedExponentiation[activeNode.editDistance];
+        unsigned beginRange = this->trie->getNode(currentActiveNodes[i].node).getBeginRange();
+        unsigned endRange = this->trie->getNode(currentActiveNodes[i].node).getEndRange();
+        long long score = this->beva->preCalculatedExponentiation[currentActiveNodes[i].editDistance];
 
         for (unsigned i = beginRange; i < endRange; i++) {
-            double dynamicScore = utils::dynamicScore(scores[i],
-                                                      score);
+            double dynamicScore = utils::dynamicScore(scores[i], score);
             TopKNode nodeToInsert(i, dynamicScore);
             topKHeap.insertNode(nodeToInsert);
         }
@@ -380,9 +542,9 @@ void Framework::processQueryWithTopKPruningV2(string &query, int queryId) {
         #endif
 
         this->beva->processNoErrors(query[currentPrefixQuery - 1],
+                                    currentPrefixQuery,
                                     oldActiveNodes[0],
-                                    currentActiveNodes[0],
-                                    topKHeap);
+                                    currentActiveNodes[0]);
 
         for (int i = 1; i <= this->editDistanceThreshold; i++) {
             this->bevaTopK[i - 1]->processWithPruningV2(query[currentPrefixQuery - 1],
@@ -390,8 +552,7 @@ void Framework::processQueryWithTopKPruningV2(string &query, int queryId) {
                                                         oldActiveNodes[i],
                                                         currentActiveNodes[i],
                                                         bitmaps[i],
-                                                        topKHeap,
-                                                        i);
+                                                        topKHeap);
         }
 
         #ifdef BEVA_IS_COLLECT_TIME_H
@@ -468,6 +629,30 @@ void Framework::buildTopKWithPruningV2Range(vector<ActiveNode>& currentActiveNod
                 TopKNode nodeToInsert(i, dynamicScore);
                 topKHeap.insertNode(nodeToInsert);
             }
+        }
+    }
+}
+
+void Framework::buildTopKWithPruningV3Range(vector<ActiveNode>& currentActiveNodes,
+                                            const long long* preCalculatedExponentiation,
+                                            TopKHeap& topKHeap,
+                                            int currentEditDistance) {
+    this->quickSort(currentActiveNodes);
+
+    for (int i = 0; i < topKHeap.capacity && i < currentActiveNodes.size(); i++) {
+        double activeNodeScore = this->trie->getNode(currentActiveNodes[i].node).getMaxStaticScore();
+        unsigned recordIdFromActiveNodeScore = this->trie->getNode(currentActiveNodes[i].node).getRecordIdFromMaxScore();
+
+        if (topKHeap.isFull() && (activeNodeScore < topKHeap.topMaxScore() || topKHeap.contains(recordIdFromActiveNodeScore))) continue;
+
+        unsigned beginRange = this->trie->getNode(currentActiveNodes[i].node).getBeginRange();
+        unsigned endRange = this->trie->getNode(currentActiveNodes[i].node).getEndRange();
+        long long score = preCalculatedExponentiation[currentEditDistance];
+
+        for (unsigned i = beginRange; i < endRange; i++) {
+            double dynamicScore = utils::dynamicScore(scores[i], score);
+            TopKNode nodeToInsert(i, dynamicScore);
+            topKHeap.insertNode(nodeToInsert);
         }
     }
 }

@@ -6,8 +6,7 @@ public:
     unsigned recordId;
     double maxScore;
 
-    TopKNode(unsigned recordId, double maxScore)
-    {
+    TopKNode(unsigned recordId, double maxScore) {
         this->setRecordId(recordId);
         this->setMaxScore(maxScore);
     }

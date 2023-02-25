@@ -145,17 +145,25 @@ void Experiment::endQueryProcessingTime(long activeNodesSize, int prefixQueryLen
     setVector(prefixQueryLength - 1, activeNodesSize, this->activeNodesSizes);
 }
 
-void Experiment::saveQueryProcessingTime(string& query, int queryId) {
+void Experiment::saveQueryProcessingTime(string& query, int queryId, bool isTopK) {
     string value = query + "\t" + to_string(queryId) + "\n";
 
     long accum = 0;
 
     for (int j = 0; j < this->currentQueryProcessingTime.size(); j++) {
-        accum += this->currentQueryProcessingTime[j];
-        value += to_string(j + 1) + "\t" + to_string(this->currentQueryProcessingTime[j]) + "\t" +
-          to_string(accum) + "\t" + to_string(this->currentQueryFetchingTime[j]) + "\t" +
-          to_string(this->currentResultsSize[j]) + "\t" +
-          to_string(this->currentActiveNodesSize[j]) + "\n";
+        if (isTopK) {
+            accum += this->currentQueryProcessingTime[j] / this->editDistanceThreshold;
+            value += to_string(j + 1) + "\t" + to_string(this->currentQueryProcessingTime[j] / this->editDistanceThreshold) + "\t" +
+                     to_string(accum) + "\t" + to_string(this->currentQueryFetchingTime[j] / this->editDistanceThreshold) + "\t" +
+                     to_string(this->currentResultsSize[j] / this->editDistanceThreshold) + "\t" +
+                     to_string(this->currentActiveNodesSize[j] / this->editDistanceThreshold) + "\n";
+        } else {
+            accum += this->currentQueryProcessingTime[j];
+            value += to_string(j + 1) + "\t" + to_string(this->currentQueryProcessingTime[j]) + "\t" +
+                     to_string(accum) + "\t" + to_string(this->currentQueryFetchingTime[j]) + "\t" +
+                     to_string(this->currentResultsSize[j]) + "\t" +
+                     to_string(this->currentActiveNodesSize[j]) + "\n";
+        }
     }
     this->currentResultsSize.clear();
     this->currentActiveNodesSize.clear();
@@ -165,7 +173,7 @@ void Experiment::saveQueryProcessingTime(string& query, int queryId) {
     writeFile("all_time_values", value, true);
 }
 
-void Experiment::compileQueryProcessingTimes(int queryId) {
+void Experiment::compileQueryProcessingTimes(int queryId, bool isTopK) {
     string value = to_string(queryId) + "\n";
     value += "query_size\tquery_processing_time\taccumulated_query_processing_time\tfetching_time\tresults_size\t"
     "active_nodes_size\n";
@@ -176,6 +184,14 @@ void Experiment::compileQueryProcessingTimes(int queryId) {
         float activeNodesSize = this->activeNodesSizes[i] / (float) (queryId + 1);
         long fetchingTime = this->fetchingTimes[i] / (queryId + 1);
         float _resultsSize = this->resultsSize[i] / (float) (queryId + 1);
+
+        if (isTopK) {
+            processingTime /= this->editDistanceThreshold;
+            activeNodesSize /= this->editDistanceThreshold;
+            fetchingTime /= this->editDistanceThreshold;
+            _resultsSize /= this->editDistanceThreshold;
+        }
+
         stringstream streamResultSize;
         streamResultSize << std::fixed << std::setprecision(1) << _resultsSize;
         stringstream stream;

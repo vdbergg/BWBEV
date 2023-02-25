@@ -37,6 +37,10 @@ void processingQueriesOutsideServer() {
         for (int i = indexMin; i < indexMax; ++i) {
             framework->processQueryWithTopKPruningV2(framework->queries[i], i);
         }
+    } else if (config["use_top_k_v4"] == "1") {
+        for (int i = indexMin; i < indexMax; ++i) {
+            framework->processQueryWithTopKPruningV3(framework->queries[i], i);
+        }
     } else if (config["is_full_query_instrumentation"] == "0") {
         for (int i = indexMin; i < indexMax; ++i) {
             framework->processQuery(framework->queries[i], i);
@@ -62,7 +66,7 @@ void processingQueriesInServer() {
                 if (req.url_params.get("query") != nullptr) {
                     string query = boost::lexical_cast<string>(req.url_params.get("query"));
                     os << "The value of 'query' is " <<  query << '\n';
-                    results = framework->processFullQuery(query);
+                    framework->processFullQueryWithTopK(query, results);
                 }
 
                 crow::json::wvalue response;

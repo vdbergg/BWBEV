@@ -41,6 +41,17 @@ void TopKHeap::print() {
         cout << tmp.top().recordId << " - " << tmp.top().maxScore << endl;
         tmp.pop();
     }
+    cout << endl;
+}
+
+void TopKHeap::outputSuggestions(vector<char *>& outputs) {
+    priority_queue<TopKNode&, vector<TopKNode>, myComparator> tmp = this->heap;
+
+    while (!tmp.empty()) {
+        unsigned recordId = tmp.top().recordId;
+        outputs.push_back(records[recordId].c_str());
+        tmp.pop();
+    }
 }
 
 vector<char *> TopKHeap::outputSuggestions() {

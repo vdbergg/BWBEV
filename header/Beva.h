@@ -29,15 +29,16 @@ public:
     unsigned scalarDesloc;
     unsigned long editDistanceMasc;
     unordered_map<unsigned long, int> unaryToDecimalMap;
+    unsigned char unaryToDecimalVet[32] = { 0 }; // until 32 for tau = 4
     long long *preCalculatedExponentiation;
 
     Beva(Trie*, Experiment*, int, long long *preCalculatedExponentiation);
     ~Beva();
 
     void processNoErrors(char ch,
+                         int prefixQueryLength,
                          vector<ActiveNode>& oldNoErrorActiveNodes,
-                         vector<ActiveNode>& currentNoErrorActiveNodes,
-                         TopKHeap& topKHeap);
+                         vector<ActiveNode>& currentNoErrorActiveNodes);
 
     void updateBitmap(char ch, unsigned bitmaps[CHAR_SIZE]);
     void processWithPruningV2(char ch,
@@ -45,15 +46,13 @@ public:
                               vector<ActiveNode>& oldActiveNodes,
                               vector<ActiveNode>& currentActiveNodes,
                               unsigned bitmaps[CHAR_SIZE],
-                              TopKHeap& topKHeap,
-                              int editDistance);
+                              TopKHeap& topKHeap);
 
     void findActiveNodesWithPruningV2(unsigned queryLength,
                                       ActiveNode &oldActiveNode,
                                       vector<ActiveNode> &activeNodes,
                                       unsigned bitmaps[CHAR_SIZE],
-                                      TopKHeap& topKHeap,
-                                      int editDistance);
+                                      TopKHeap& topKHeap);
 
     void process(char, int, vector<ActiveNode>& oldActiveNodes, vector<ActiveNode>& currentActiveNodes,
                  unsigned bitmaps[CHAR_SIZE]);
@@ -115,11 +114,11 @@ public:
     inline int retrieveEditDistance(int pos, unsigned long vet) {
         if (pos > (2 * this->editDistanceThreshold)) return this->editDistanceThreshold + 1;
 
-        int numberOfDeslocMasc = (pos * (editDistanceThreshold + 1));
+        int numberOfDeslocMasc = (pos * (this->editDistanceThreshold + 1));
         unsigned long masc = this->editDistanceMasc >> numberOfDeslocMasc;
-        unsigned long result = (vet & masc) >> (64 - (numberOfDeslocMasc + (editDistanceThreshold + 1)));
+        unsigned long result = (vet & masc) >> (64 - (numberOfDeslocMasc + (this->editDistanceThreshold + 1)));
 
-        int editDistance = this->unaryToDecimalMap[result];
+        int editDistance = this->unaryToDecimalVet[result];
 
         return editDistance;
     }

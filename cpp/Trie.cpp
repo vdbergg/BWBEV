@@ -50,7 +50,8 @@ void Trie::buildDaatIndex() {
                     getNode(node).setIsEndOfWord(true);
                     if (this->experiment->config["use_top_k_v1"] == "1" ||
                         this->experiment->config["use_top_k_v2"] == "1" ||
-                        this->experiment->config["use_top_k_v3"] == "1") {
+                        this->experiment->config["use_top_k_v3"] == "1" ||
+                        this->experiment->config["use_top_k_v4"] == "1") {
                         getNode(node).setMaxStaticScore(scores[recordId]);
                         getNode(node).setRecordIdFromMaxScore(recordId);
                     }

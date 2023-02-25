@@ -17,24 +17,22 @@ done
 edit_distance=${cfg_array[0]}
 dataset=${cfg_array[1]}
 queries_size=${cfg_array[2]}
-recovery_mode=${cfg_array[3]}
-qry_number_start=${cfg_array[4]}
-qry_number_end=${cfg_array[5]}
-size_type=${cfg_array[6]}
-alg=${cfg_array[7]}
-dataset_basepath=${cfg_array[8]}
-query_basepath=${cfg_array[9]}
-score_basepath=${cfg_array[10]}
-experiments_basepath=${cfg_array[11]}
-is_server=${cfg_array[12]}
-is_full_query_instrumentation=${cfg_array[13]}
-has_relevant_queries=${cfg_array[14]}
-k_results=${cfg_array[15]}
-use_top_k_v1=${cfg_array[16]}
-use_top_k_v2=${cfg_array[17]}
-use_top_k_v3=${cfg_array[18]}
-
-on_recovery_mode=0
+qry_number_start=${cfg_array[3]}
+qry_number_end=${cfg_array[4]}
+size_type=${cfg_array[5]}
+alg=${cfg_array[6]}
+dataset_basepath=${cfg_array[7]}
+query_basepath=${cfg_array[8]}
+score_basepath=${cfg_array[9]}
+experiments_basepath=${cfg_array[10]}
+is_server=${cfg_array[11]}
+is_full_query_instrumentation=${cfg_array[12]}
+has_relevant_queries=${cfg_array[13]}
+k_results=${cfg_array[14]}
+use_top_k_v1=${cfg_array[15]}
+use_top_k_v2=${cfg_array[16]}
+use_top_k_v3=${cfg_array[17]}
+use_top_k_v4=${cfg_array[18]}
 
 for dt in $(seq ${dataset} 6)
 do
@@ -43,21 +41,13 @@ do
         for st in $(seq ${size_type} 4)
         do
 
-            for ed in $(seq ${edit_distance} 5)
+            for ed in $(seq ${edit_distance} 3)
             do
-
-                if [[ "${recovery_mode}" == 1 ]] && [[ "${on_recovery_mode}" == 1 ]] ; then
-                    recovery_mode=0
-                    qry_number_start=0
-                    on_recovery_mode=0
-                fi
-
                 echo -n > ${cfg_path} # Clear file
 
                 echo "edit_distance=${ed}" >> ${cfg_path}
                 echo "dataset=${dt}" >> ${cfg_path}
                 echo "queries_size=${queries_size}" >> ${cfg_path}
-                echo "recovery_mode=${recovery_mode}" >> ${cfg_path}
                 echo "qry_number_start=${qry_number_start}" >> ${cfg_path}
                 echo "qry_number_end=${qry_number_end}" >> ${cfg_path}
                 echo "size_type=${st}" >> ${cfg_path}
@@ -73,6 +63,7 @@ do
                 echo "use_top_k_v1=${use_top_k_v1}" >> ${cfg_path}
                 echo "use_top_k_v2=${use_top_k_v2}" >> ${cfg_path}
                 echo "use_top_k_v3=${use_top_k_v3}" >> ${cfg_path}
+                echo "use_top_k_v4=${use_top_k_v4}" >> ${cfg_path}
 
                 echo "<<<<<<<<<< Start Run >>>>>>>>>>>"
 
@@ -81,8 +72,6 @@ do
                 [[ $? -eq 0 ]] || exit 1 # break if fail
 
                 echo "<<<<<<<<<< Stop Run >>>>>>>>>>>"
-
-                on_recovery_mode=${recovery_mode}
 
             done
 

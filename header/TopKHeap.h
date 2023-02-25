@@ -26,6 +26,7 @@ public:
     ~TopKHeap();
 
     void insertNode(TopKNode& node);
+    void outputSuggestions(vector<char *>& outputs);
     vector<char *> outputSuggestions();
     bool contains(unsigned recordId);
     bool contains(TopKNode& node);

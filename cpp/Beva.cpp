@@ -26,6 +26,10 @@ Beva::Beva(Trie* trie, Experiment* experiment, int editDistanceThreshold, long l
             unaryToDecimalMap[3] = 0;
             unaryToDecimalMap[1] = 1;
             unaryToDecimalMap[0] = 2;
+
+            unaryToDecimalVet[3] = 0;
+            unaryToDecimalVet[1] = 1;
+            unaryToDecimalVet[0] = 2;
             break;
         case 2:
             this->maskSum = 0x6DB6C00000000000; // 011 011 011 011 011 00 00...
@@ -35,6 +39,10 @@ Beva::Beva(Trie* trie, Experiment* experiment, int editDistanceThreshold, long l
             unaryToDecimalMap[3] = 1;
             unaryToDecimalMap[1] = 2;
             unaryToDecimalMap[0] = 3;
+            unaryToDecimalVet[7] = 0;
+            unaryToDecimalVet[3] = 1;
+            unaryToDecimalVet[1] = 2;
+            unaryToDecimalVet[0] = 3;
             break;
         case 3:
             this->maskSum = 0x7777777000000000; // 0111 0111 0111 0111 0111 0111 0111
@@ -45,6 +53,12 @@ Beva::Beva(Trie* trie, Experiment* experiment, int editDistanceThreshold, long l
             unaryToDecimalMap[3] = 2;
             unaryToDecimalMap[1] = 3;
             unaryToDecimalMap[0] = 4;
+
+            unaryToDecimalVet[15] = 0;
+            unaryToDecimalVet[7] = 1;
+            unaryToDecimalVet[3] = 2;
+            unaryToDecimalVet[1] = 3;
+            unaryToDecimalVet[0] = 4;
             break;
         case 4:
             this->maskSum = 0x7BDEF7BDEF780000; // 0111 1011 1101 1110 1111 0111 1011 1101 1110 1111 0111 1000
@@ -56,6 +70,13 @@ Beva::Beva(Trie* trie, Experiment* experiment, int editDistanceThreshold, long l
             unaryToDecimalMap[3] = 3;
             unaryToDecimalMap[1] = 4;
             unaryToDecimalMap[0] = 5;
+
+            unaryToDecimalVet[31] = 0;
+            unaryToDecimalVet[15] = 1;
+            unaryToDecimalVet[7] = 2;
+            unaryToDecimalVet[3] = 3;
+            unaryToDecimalVet[1] = 4;
+            unaryToDecimalVet[0] = 5;
             break;
         default:
             cout << this->editDistanceThreshold << endl;
@@ -76,9 +97,13 @@ Beva::~Beva() {
 }
 
 void Beva::processNoErrors(char ch,
+                           int prefixQueryLength,
                            vector<ActiveNode>& oldActiveNodes,
-                           vector<ActiveNode>& currentActiveNodes,
-                           TopKHeap& topKHeap) {
+                           vector<ActiveNode>& currentActiveNodes) {
+    if (prefixQueryLength == 1) {
+        oldActiveNodes.emplace_back(this->trie->root, this->editVectorStartValue, 0, 0);
+    }
+
     for (ActiveNode oldActiveNode : oldActiveNodes) {
         unsigned child = this->trie->getNode(oldActiveNode.node).children;
         unsigned endChildren = child + this->trie->getNode(oldActiveNode.node).numChildren;
@@ -101,13 +126,12 @@ void Beva::processWithPruningV2(char ch,
                                 vector<ActiveNode>& oldActiveNodes,
                                 vector<ActiveNode>& currentActiveNodes,
                                 unsigned bitmaps[CHAR_SIZE],
-                                TopKHeap& heap,
-                                int editDistance) {
+                                TopKHeap& heap) {
     this->updateBitmap(ch, bitmaps);
 
     if (prefixQueryLength == 1) {
         double childScore = utils::dynamicScore(this->trie->getNode(this->trie->root).getMaxStaticScore(),
-                                                this->preCalculatedExponentiation[editDistance]);
+                                                this->preCalculatedExponentiation[this->editDistanceThreshold]);
         unsigned recordIdFromActiveNodeScore = this->trie->getNode(this->trie->root).getRecordIdFromMaxScore();
 
         if (heap.isFull() && (childScore < heap.topMaxScore() || heap.contains(recordIdFromActiveNodeScore))) return;
@@ -122,14 +146,10 @@ void Beva::processWithPruningV2(char ch,
                                                oldActiveNode,
                                                currentActiveNodes,
                                                bitmaps,
-                                               heap,
-                                               editDistance);
+                                               heap);
         }
     } else {
         swap(currentActiveNodes, oldActiveNodes);
-        for (ActiveNode& activeNode : currentActiveNodes) { // This code is necessary when the edit distance were obtained in fetching phase
-            activeNode.editDistance++;
-        }
     }
 }
 
@@ -137,17 +157,15 @@ void Beva::findActiveNodesWithPruningV2(unsigned queryLength,
                                         ActiveNode &oldActiveNode,
                                         vector<ActiveNode> &activeNodes,
                                         unsigned bitmaps[CHAR_SIZE],
-                                        TopKHeap& topKHeap,
-                                        int editDistance) {
+                                        TopKHeap& topKHeap) {
     unsigned child = this->trie->getNode(oldActiveNode.node).children;
     unsigned endChildren = child + this->trie->getNode(oldActiveNode.node).numChildren;
     unsigned tempSize = oldActiveNode.level + 1;
 
     double nodeScore = utils::dynamicScore(this->trie->getNode(oldActiveNode.node).getMaxStaticScore(),
-                                           this->preCalculatedExponentiation[editDistance]);
+                                           this->preCalculatedExponentiation[this->editDistanceThreshold]);
     unsigned recordIdFromNodeScore = this->trie->getNode(oldActiveNode.node).getRecordIdFromMaxScore();
     if (topKHeap.isFull() && (nodeScore < topKHeap.topMaxScore() || topKHeap.contains(recordIdFromNodeScore))) return;
-
 
     for (; child < endChildren; child++) {
         #ifdef BEVA_IS_COLLECT_COUNT_OPERATIONS_H
@@ -169,9 +187,12 @@ void Beva::findActiveNodesWithPruningV2(unsigned queryLength,
 
         if (this->isActive((int) queryLength - (int) tempSize, newEditVector)) {
             activeNodes.emplace_back(child, newEditVector, tempSize);
+//        int currentEditDistance = this->retrieveEditDistance(((int) queryLength - (int) tempSize) + this->editDistanceThreshold, newEditVector);
+//        if (currentEditDistance <= this->editDistanceThreshold) {
+//            activeNodes.emplace_back(child, newEditVector, tempSize, currentEditDistance);
         } else {
             ActiveNode tmp(child, newEditVector, tempSize);
-            this->findActiveNodesWithPruningV2(queryLength, tmp, activeNodes, bitmaps, topKHeap, editDistance);
+            this->findActiveNodesWithPruningV2(queryLength, tmp, activeNodes, bitmaps, topKHeap);
         }
     }
 }

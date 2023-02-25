@@ -11,7 +11,7 @@ public:
     unsigned long editVector;
     unsigned node;
     unsigned level;
-    unsigned editDistance;
+    int editDistance;
 
     ActiveNode(unsigned, unsigned long, unsigned, int);
     ActiveNode(unsigned, unsigned long, unsigned);
