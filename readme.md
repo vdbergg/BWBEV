@@ -1,19 +1,10 @@
-# BShift: A Bit Parallelism Approach for Approximate Prefix Search on Large Datasets
+# BShift
 
 **Authors:** Edleno Silva de Moura · Berg Ferreira · Altigran da Silva · Ricardo Baeza-Yates
 
-**Journal:** Very Large Data Base Endowment Inc. (VLDB Endowment)
+**Journal:**
 
-**Abstract:** In this study, we address the issue of performing an approximate pre-
-fix search on a set of strings. We discuss the use of a bit-parallelism
-approach to calculate the edit distance between two distinct strings
-and demonstrate how to adapt it for use in an approximate prefix
-search method. We propose a trie-based method, named BShift, that
-utilizes a unary representation of the edit vectors and bitwise oper-
-ations to update them when calculating the edit distance between
-strings. Our experimental results with the new method indicate
-that it can significantly accelerate processing by more than 36%
-when compared to state-of-the-art methods.
+**Abstract:**
 
 **DOI:** 
 
