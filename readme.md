@@ -20,7 +20,7 @@ We present a new method called **B**it**w**ise **B**oundary **E**dit **V**ector 
 
 ## How to use
 
-This repository includes implementations of BShift method
+This repository includes implementations of BWBEV method
 
 ### Running a method
 
