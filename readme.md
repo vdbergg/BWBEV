@@ -2,7 +2,7 @@
 
 We present a new method called **B**it**w**ise **B**oundary **E**dit **V**ector (BWBEV) to edit distance calculation
 
-**Authors:** Edleno Silva de Moura · Berg Ferreira · Altigran da Silva · Ricardo Baeza-Yates
+**Authors:** 
 
 **Journal:**
 
