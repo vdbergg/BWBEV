@@ -2,16 +2,18 @@
 
 We present a new method called **B**it**w**ise **B**oundary **E**dit **V**ector (BWBEV) to edit distance calculation
 
-**Authors:** 
+**Authors:** Edleno Silva de Moura · Berg Ferreira · Altigran da Silva · Ricardo Baeza-Yates
 
-**Journal:**
+**Journal:** Journal of the Brazilian Computer Society (JBCS), 2024, 30:1
 
 **Abstract:**
+We tackle the challenge of conducting an approximate prefix search within datasets of strings. We explore using a bit-parallelism technique to compute the edit distance between distinct strings and illustrate its adaptation for an approximate prefix search procedure referred to as BWBEV. This technique employs a unary representation of edit vectors alongside bitwise operations to efficiently update these vectors during the edit distance computation. We also show how to apply our new bit-parallelism technique strategy to online edit distance computation between strings without index structure. Our experiments with BWBEV applied to approximate prefix search for a query autocompletion task revealed a substantial acceleration of over 36% when contrasted against state-of-the-art methods.
 
-**DOI:** 
+**DOI:** 10.5753/jbcs.2024.4236
+
+**URL:** https://journals-sol.sbc.org.br/index.php/jbcs/article/view/4236/2997
 
 **Note:** For any reference to the repository, please cite this article.
-
 
 ## Requirements
 
